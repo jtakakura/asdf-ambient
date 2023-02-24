@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for ambient.
 GH_REPO="https://github.com/AmbientRun/Ambient"
 TOOL_NAME="ambient"
 TOOL_TEST="ambient --help"
@@ -31,18 +30,24 @@ list_github_tags() {
 }
 
 list_all_versions() {
-  # TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-  # Change this function if ambient has other means of determining installable versions.
   list_github_tags
 }
 
 download_release() {
-  local version filename url
+  local version filename arch target url
   version="$1"
   filename="$2"
+  arch=$(uname -m)
 
-  # TODO: Adapt the release URL convention for ambient
-  url="$GH_REPO/archive/v${version}.tar.gz"
+  if [[ "$OSTYPE" == "linux-gnu"* && "$arch" == "x86_64"* ]]; then
+    target="x86_64-unknown-linux-gnu"
+  elif [[ "$OSTYPE" == "darwin"* && "$arch" == "arm64"* ]]; then
+    target="aarch64-apple-darwin"
+  else
+    fail "Unsupported platform"
+  fi
+
+  url="$GH_REPO/releases/download/v${version}/ambient-${target}.zip"
 
   echo "* Downloading $TOOL_NAME release $version..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -61,7 +66,6 @@ install_version() {
     mkdir -p "$install_path"
     cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
 
-    # TODO: Assert ambient executable exists.
     local tool_cmd
     tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
     test -x "$install_path/$tool_cmd" || fail "Expected $install_path/$tool_cmd to be executable."
